@@ -422,7 +422,9 @@
             if (p.paused) { 
                 if (appState.bgmList && appState.bgmList.length > 0) { 
                     p.src = appState.bgmList[Math.floor(Math.random() * appState.bgmList.length)];
-                    p.play().then(() => s.classList.add('music-playing')).catch(() => { alert("系统限制，请先点击屏幕任意处") }); 
+                    p.play().then(() => s.classList.add('music-playing')).catch((e) => { 
+                        alert("🎵 终端音频加载失败。请检查协议是否为 HTTPS，且无多余空格。"); 
+                    }); 
                 } else { alert("请在设置中录入音轨链接。"); toggleDrawer(); }
             } else { p.pause(); s.classList.remove('music-playing'); }
         }
