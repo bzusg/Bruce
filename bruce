@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Wayne Secure Channel</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap">
+    <style>
+        :root {
+            /* 哥谭暗夜 & 韦恩暗金 主题配色 */
+            --primary-color: #0d0d0d;       /* 极暗背景 */
+            --secondary-color: #1a1a1a;     /* 面板背景 */
+            --accent-color: #333333;        /* 边框与占位 */
+            --text-color: #e0e0e0;          /* 主要文字偏白 */
+            --light-text: #7a7a7a;          /* 次要文字 */
+            --highlight: #d4af37;           /* 韦恩暗金色 */
+            --message-self: rgba(212, 175, 55, 0.15); /* 自己的气泡：微微带金 */
+            --message-other: rgba(30, 30, 30, 0.85);  /* 布鲁斯的气泡：深灰黑 */
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background: var(--primary-color) no-repeat center center fixed; background-size: cover;
+            font-family: "Noto Serif SC", "PingFang SC", serif; color: var(--text-color);
+            height: 100vh; height: 100dvh; 
+            display: flex; flex-direction: column; overflow: hidden; transition: background 0.4s;
+        }
+        
+        header {
+            height: 95px; background: rgba(13, 13, 13, 0.8); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border-bottom: 1px solid var(--accent-color); position: fixed; top: 0; width: 100%; z-index: 100;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .info-center { text-align: center; cursor: pointer; min-width: 150px; padding: 5px; }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-color) center/cover; margin: 0 auto 4px; border: 1px solid rgba(212, 175, 55, 0.3); }
+        .name { font-size: 15px; letter-spacing: 2px; font-weight: bold; color: var(--highlight); }
+        .days-tag { font-size: 9px; color: var(--primary-color); background: var(--highlight); padding: 1px 6px; border-radius: 10px; margin-top: 2px; display: inline-block; font-weight: bold;}
+        .status { font-size: 10px; color: var(--light-text); margin-top: 2px; font-family: sans-serif; }
+        .music-toggle { position: absolute; right: 20px; cursor: pointer; padding: 10px; }
+        .music-icon { width: 20px; height: 20px; fill: var(--light-text); }
+        .music-playing { animation: rotate 3s linear infinite; fill: var(--highlight); }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        #chat-window { flex: 1; margin-top: 95px; padding: 20px 20px 120px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }
+        .msg-row { display: flex; align-items: flex-start; gap: 10px; max-width: 88%; }
+        .row-self { flex-direction: row-reverse; align-self: flex-end; }
+        .mini-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; background: var(--accent-color) center/cover; border: 1px solid rgba(255,255,255,0.1); }
+        .bubble { padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.6; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.5); word-wrap: break-word; border: 1px solid rgba(255,255,255,0.05); }
+        .self .bubble { background: var(--message-self); border-top-right-radius: 2px; border-color: rgba(212, 175, 55, 0.2); }
+        .other .bubble { background: var(--message-other); border-top-left-radius: 2px; }
+        .img-content { max-width: 140px; border-radius: 10px; display: block; opacity: 0.9; }
+
+        footer { height: 70px; background: rgba(13, 13, 13, 0.8); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border-top: 1px solid var(--accent-color); position: fixed; bottom: 0; width: 100%; display: flex; padding: 0 15px; align-items: center; gap: 12px; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+        #msg-input { flex: 1; height: 40px; border: 1px solid var(--accent-color); border-radius: 20px; padding: 0 15px; background: rgba(26, 26, 26, 0.6); color: var(--text-color); outline: none; font-size: 15px; font-family: "Noto Serif SC", serif; }
+        #msg-input::placeholder { color: var(--light-text); }
+
+        #library-drawer { position: fixed; bottom: -90%; left: 0; width: 100%; height: 85%; background: var(--secondary-color); z-index: 500; border-top: 1px solid var(--accent-color); transition: 0.3s; display: flex; flex-direction: column; padding: 20px; box-shadow: 0 -5px 25px rgba(0,0,0,0.8); }
+        #library-drawer.open { bottom: 0; }
+        .drawer-tabs { display: flex; justify-content: space-around; border-bottom: 1px solid var(--accent-color); padding-bottom: 10px; }
+        .tab-btn { background: none; border: none; color: var(--light-text); cursor: pointer; font-size: 14px; padding: 5px 10px; font-family: "Noto Serif SC", serif; }
+        .tab-btn.active { color: var(--highlight); font-weight: bold; border-bottom: 2px solid var(--highlight); }
+        .tab-content { display: none; padding-top: 15px; flex: 1; overflow-y: auto; }
+        .tab-content.active { display: block; }
+        
+        .setting-input { width: 100%; padding: 10px; border: 1px solid var(--accent-color); border-radius: 8px; margin-bottom: 10px; font-size: 14px; background: var(--primary-color); color: var(--text-color); outline: none; font-family: "Noto Serif SC", serif; }
+        .setting-input::placeholder { color: #555; }
+        .btn-main { width: 100%; padding: 12px; background: var(--highlight); color: #000; font-weight: bold; border: none; border-radius: 8px; margin-bottom: 10px; font-size: 14px; cursor: pointer; font-family: "Noto Serif SC", serif; }
+        .btn-sub { width: 100%; padding: 12px; background: var(--primary-color); color: var(--text-color); border: 1px solid var(--accent-color); border-radius: 8px; margin-bottom: 10px; font-size: 14px; cursor: pointer; font-family: "Noto Serif SC", serif; }
+        .btn-danger { width: 100%; padding: 12px; background: #5a2a2a; color: #e0e0e0; border: none; border-radius: 8px; margin-bottom: 10px; font-size: 14px; cursor: pointer; font-family: "Noto Serif SC", serif; }
+        
+        .emoji-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .emoji-box { position: relative; width: 100%; aspect-ratio: 1; border-radius: 8px; background: center/cover; cursor: pointer; border: 1px solid var(--accent-color); }
+        .del-badge { position: absolute; top: -5px; right: -5px; background: rgba(200,50,50,0.9); color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; text-align: center; line-height: 18px; font-family: sans-serif; }
+
+        #wallpaper-file, #emoji-file, #avatar-file { display: none; }
+    </style>
+</head>
+<body>
+    <audio id="bgm-player" loop></audio>
+    <header>
+        <div class="info-center" onclick="editPartnerName()">
+            <div id="header-avatar" class="avatar" onclick="event.stopPropagation(); triggerAvatarChange('partner')"></div>
+            <div id="display-name" class="name">Bruce Wayne</div>
+            <div id="memorial-days" class="days-tag">Day 1</div>
+            <div id="status-text" class="status">加密连接中...</div>
+        </div>
+        <div class="music-toggle" onclick="toggleMusic()" title="播放韦恩庄园歌单">
+            <svg id="music-svg" class="music-icon" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+        </div>
+    </header>
+
+    <div id="chat-window"></div>
+
+    <footer>
+        <div onclick="toggleDrawer()" style="cursor:pointer; font-size:26px; color:var(--highlight); padding:0 5px; font-weight:bold;">+</div>
+        <div id="footer-self-avatar" class="mini-avatar" onclick="triggerAvatarChange('self')"></div>
+        <input type="text" id="msg-input" placeholder="输入消息至终端..." autocomplete="off">
+        <button id="send-btn" style="background:none; border:none; color:var(--highlight); font-weight:bold; cursor:pointer; font-size:15px; font-family: 'Noto Serif SC', serif;">发送</button>
+    </footer>
+
+    <div id="library-drawer">
+        <div class="drawer-tabs">
+            <button class="tab-btn active" onclick="switchTab('words')">📝 预设字卡</button>
+            <button class="tab-btn" onclick="switchTab('emojis')">🎨 专属图库</button>
+            <button class="tab-btn" onclick="switchTab('settings')">⚙️ 终端设置</button>
+            <button class="tab-btn" onclick="toggleDrawer()" style="color:var(--text-color)">▼</button>
+        </div>
+
+        <div id="tab-words" class="tab-content active">
+            <textarea id="batch-word-input" class="setting-input" rows="4" placeholder="批量添加布鲁斯的专属回复，每行一个..."></textarea>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-main" onclick="batchAddWords()">录入数据</button>
+                <button class="btn-danger" onclick="clearWords()">清空字卡</button>
+            </div>
+            <div id="word-list" style="margin-top:10px;"></div>
+        </div>
+
+        <div id="tab-emojis" class="tab-content">
+            <p style="font-size:12px; color:var(--light-text); margin-bottom:10px;">✨ 上传你们的专属表情库</p>
+            <div style="display:flex; gap:5px; margin-bottom:10px;">
+                <input type="text" id="emoji-url-input" class="setting-input" style="margin:0;" placeholder="贴入图床链接 (.jpg/.png)">
+                <button class="btn-main" style="width:auto; padding:0 15px; margin:0;" onclick="addEmojiUrl()">添加</button>
+            </div>
+            <button onclick="document.getElementById('emoji-file').click()" class="btn-sub">或：本地相册批量压缩上传</button>
+            <button class="btn-danger" style="margin-top:10px;" onclick="clearEmojis()">清空图库</button>
+            <div id="emoji-list" class="emoji-grid" style="margin-top:10px;"></div>
+        </div>
+
+        <div id="tab-settings" class="tab-content">
+            <p style="font-size:12px; color:var(--highlight); margin-bottom:5px;">⏳ 对方思考时间 (秒)：</p>
+            <input type="number" id="speed-input" class="setting-input" onchange="updateSpeed(this.value)" placeholder="输入秒数，默认 8 秒" min="1" max="60">
+
+            <p style="font-size:12px; color:var(--light-text); margin-bottom:5px; margin-top:10px;">全屏壁纸 (推荐暗色系图床链接)：</p>
+            <input type="text" id="wallpaper-url-input" class="setting-input" onchange="updateWallpaperUrl(this.value)" placeholder="输入高清壁纸链接...">
+            
+            <p style="font-size:12px; color:var(--light-text); margin-bottom:5px; margin-top:10px;">🎵 庄园盲盒歌单：</p>
+            <textarea id="bgm-list-input" class="setting-input" rows="3" onchange="updateBgmList()" placeholder="每行输入一个外部MP3链接..."></textarea>
+            
+            <p style="font-size:12px; color:var(--light-text); margin-bottom:5px; margin-top:10px;">相识日期：</p>
+            <input type="date" id="date-input" class="setting-input" onchange="updateDate(this.value)">
+        </div>
+    </div>
+
+    <input type="file" id="wallpaper-file" accept="image/*">
+    <input type="file" id="emoji-file" accept="image/*" multiple>
+    <input type="file" id="avatar-file" accept="image/*">
+
+    <script>
+        // 单一纯粹的数据结构，不再区分多个 Chat
+        let appState = {
+            selfAvatar: '',
+            partnerAvatar: '',
+            partnerName: 'Bruce Wayne',
+            wallpaper: '',
+            bgmList: [],
+            startDate: new Date().toISOString().split('T')[0],
+            messages: [],
+            words: ["韦恩集团今天有个会", "夜巡结束了", "注意安全", "I'm Batman", "早点休息"],
+            emojis: [],
+            replySpeed: 8 // 布鲁斯可能回消息快一点，默认8秒
+        };
+
+        let isTyping = false; 
+
+        function init() {
+            const saved = localStorage.getItem('wayne_secure_state');
+            if (saved) { 
+                try {
+                    let parsed = JSON.parse(saved);
+                    // 兼容旧数据或合并
+                    appState = { ...appState, ...parsed };
+                } catch(e) {}
+            }
+            applyUI(); 
+            renderChat();
+        }
+
+        function save() { try { localStorage.setItem('wayne_secure_state', JSON.stringify(appState)); } catch(e) { alert("终端存储已满，请使用云端链接。"); } }
+
+        function applyUI() {
+            document.getElementById('display-name').innerText = appState.partnerName;
+            document.title = appState.partnerName;
+            document.getElementById('header-avatar').style.backgroundImage = `url(${appState.partnerAvatar})`;
+            document.getElementById('footer-self-avatar').style.backgroundImage = `url(${appState.selfAvatar})`;
+            document.body.style.backgroundImage = appState.wallpaper ? `url(${appState.wallpaper})` : 'none';
+            document.getElementById('wallpaper-url-input').value = appState.wallpaper || '';
+            document.getElementById('bgm-list-input').value = (appState.bgmList || []).join('\n');
+            document.getElementById('date-input').value = appState.startDate;
+            document.getElementById('speed-input').value = appState.replySpeed;
+            
+            const diff = Math.floor(Math.abs(new Date() - new Date(appState.startDate)) / (1000*60*60*24)) + 1;
+            document.getElementById('memorial-days').innerText = `Day ${diff}`;
+            
+            renderWordList(); renderEmojiList();
+            
+            const player = document.getElementById('bgm-player');
+            player.pause();
+            document.getElementById('music-svg').classList.remove('music-playing');
+            document.getElementById('status-text').innerText = "在线";
+            isTyping = false;
+        }
+
+        function updateSpeed(val) {
+            let speed = parseInt(val);
+            if(isNaN(speed) || speed < 0) speed = 8;
+            appState.replySpeed = speed;
+            save();
+        }
+
+        function updateBgmList() {
+            const lines = document.getElementById('bgm-list-input').value.split('\n');
+            appState.bgmList = lines.map(l => l.trim()).filter(l => l);
+            save();
+        }
+
+        function toggleMusic() { 
+            const p = document.getElementById('bgm-player'); const s = document.getElementById('music-svg');
+            if (p.paused) { 
+                if (appState.bgmList && appState.bgmList.length > 0) { 
+                    const randomSong = appState.bgmList[Math.floor(Math.random() * appState.bgmList.length)];
+                    p.src = randomSong;
+                    p.play().then(() => s.classList.add('music-playing')).catch(() => { alert("系统限制，请先点击屏幕任意处") }); 
+                } else { alert("请在设置中录入音轨链接。"); toggleDrawer(); }
+            } else { p.pause(); s.classList.remove('music-playing'); }
+        }
+
+        function batchAddWords() {
+            const lines = document.getElementById('batch-word-input').value.split('\n');
+            let count = 0;
+            lines.forEach(line => { if (line.trim()) { appState.words.push(line.trim()); count++; } });
+            if (count > 0) { document.getElementById('batch-word-input').value = ''; save(); renderWordList(); alert(`成功录入 ${count} 条数据。`); }
+        }
+        function renderWordList() { document.getElementById('word-list').innerHTML = appState.words.map((w, i) => `<div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid var(--accent-color); font-size:13px; color:var(--text-color);"><span>${w}</span><span style="color:#a84c4c; cursor:pointer" onclick="appState.words.splice(${i},1);save();renderWordList()">删除</span></div>`).join(''); }
+        function clearWords() { if (confirm(`确认清空数据吗？`)) { appState.words = []; save(); renderWordList(); } }
+
+        function addEmojiUrl() {
+            const url = document.getElementById('emoji-url-input').value.trim();
+            if(url) { appState.emojis.push(url); document.getElementById('emoji-url-input').value = ''; save(); renderEmojiList(); }
+        }
+
+        document.getElementById('emoji-file').onchange = async function(e) {
+            const files = e.target.files; if (files.length === 0) return;
+            document.getElementById('emoji-list').innerHTML = "<p style='font-size:12px;color:var(--highlight);'>加密处理中...</p>";
+            for (let i = 0; i < files.length; i++) {
+                try { const base64 = await compressImage(files[i]); appState.emojis.push(base64); } catch (err) {}
+            }
+            save(); renderEmojiList();
+        };
+
+        function compressImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader(); reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image(); img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+                        const scale = img.width > 250 ? 250 / img.width : 1;
+                        canvas.width = img.width * scale; canvas.height = img.height * scale;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.6));
+                    }; img.onerror = reject;
+                };
+            });
+        }
+
+        function renderEmojiList() {
+            document.getElementById('emoji-list').innerHTML = appState.emojis.map((img, i) => `<div class="emoji-box" style="background-image:url(${img})" onclick="sendMsg('${img}',true)"><div class="del-badge" onclick="event.stopPropagation(); appState.emojis.splice(${i},1);save();renderEmojiList()">×</div></div>`).join('');
+        }
+        function clearEmojis() { if (confirm(`确认清空图库吗？`)) { appState.emojis = []; save(); renderEmojiList(); } }
+
+        function sendMsg(text, isImg=false, type='self') {
+            const msg = { text, isImg, type, id: Date.now() };
+            appState.messages.push(msg); renderSingleMsg(msg); save();
+            if(type === 'self') autoReply();
+        }
+
+        function renderSingleMsg(m) {
+            const win = document.getElementById('chat-window'); const row = document.createElement('div');
+            row.className = `msg-row ${m.type==='self'?'row-self self':'other'}`;
+            const avatarImg = m.type === 'self' ? appState.selfAvatar : appState.partnerAvatar;
+            const av = `<div class="mini-avatar" style="background-image:url(${avatarImg})"></div>`;
+            const content = m.isImg ? `<img src="${m.text}" class="img-content" onload="scrollToBottom()">` : `<span>${m.text}</span>`;
+            row.innerHTML = m.type==='self' ? `<div class="bubble">${content}</div>${av}` : `${av}<div class="bubble">${content}</div>`;
+            win.appendChild(row); scrollToBottom();
+        }
+
+        function autoReply() {
+            if (isTyping) return; 
+            const pool = [...appState.words.map(w=>({t:w,i:false})), ...appState.emojis.map(e=>({t:e,i:true}))];
+            if(!pool.length) return;
+            
+            isTyping = true;
+            document.getElementById('status-text').innerText = "输入中...";
+            
+            const speedMs = (appState.replySpeed || 8) * 1000;
+            
+            setTimeout(() => {
+                const replyCount = Math.floor(Math.random() * 5) + 1;
+                let sentCount = 0;
+
+                function sendNext() {
+                    if (sentCount >= replyCount) {
+                        document.getElementById('status-text').innerText = "在线";
+                        isTyping = false;
+                        return;
+                    }
+                    
+                    const item = pool[Math.floor(Math.random()*pool.length)];
+                    const msg = { text: item.t, isImg: item.i, type: 'other', id: Date.now() };
+                    appState.messages.push(msg); renderSingleMsg(msg); save();
+                    sentCount++;
+
+                    if (sentCount < replyCount) {
+                        document.getElementById('status-text').innerText = "输入中...";
+                        setTimeout(sendNext, Math.floor(Math.random() * 1500) + 1500);
+                    } else {
+                        document.getElementById('status-text').innerText = "在线";
+                        isTyping = false;
+                    }
+                }
+                
+                sendNext();
+                
+            }, speedMs); 
+        }
+
+        function renderChat() { document.getElementById('chat-window').innerHTML = ''; appState.messages.forEach(renderSingleMsg); }
+        
+        function scrollToBottom() { 
+            const c = document.getElementById('chat-window'); 
+            setTimeout(() => { c.scrollTo({ top: c.scrollHeight + 200, behavior: 'smooth' }); }, 50); 
+        }
+
+        function editPartnerName() { const n = prompt("重命名终端代号：", appState.partnerName); if(n && n.trim()) { appState.partnerName = n.trim(); applyUI(); save(); } }
+        function updateDate(d) { appState.startDate = d; save(); applyUI(); }
+        function updateWallpaperUrl(url) { appState.wallpaper = url; applyUI(); save(); }
+
+        function triggerAvatarChange(t) { window.avT = t; document.getElementById('avatar-file').click(); }
+        document.getElementById('avatar-file').onchange = async function(e) {
+            if(e.target.files.length > 0) {
+                const base64 = await compressImage(e.target.files[0]);
+                if(window.avT === 'self') appState.selfAvatar = base64; else appState.partnerAvatar = base64;
+                save(); applyUI(); renderChat();
+            }
+        };
+
+        function switchTab(t) { document.querySelectorAll('.tab-btn, .tab-content').forEach(el=>el.classList.remove('active')); event.target.classList.add('active'); document.getElementById(`tab-${t}`).classList.add('active'); }
+        function toggleDrawer() { document.getElementById('library-drawer').classList.toggle('open'); }
+
+        document.getElementById('send-btn').onclick = () => { const i = document.getElementById('msg-input'); if(i.value.trim()) { sendMsg(i.value.trim()); i.value=''; } };
+        document.getElementById('msg-input').onkeypress = (e) => { if(e.key==='Enter') document.getElementById('send-btn').click(); };
+
+        init();
+    </script>
+</body>
+</html>
