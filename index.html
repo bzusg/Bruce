@@ -8,14 +8,14 @@
     <style>
         :root {
             /* 哥谭暗夜 & 韦恩暗金 主题配色 */
-            --primary-color: #0d0d0d;       /* 极暗背景 */
-            --secondary-color: #1a1a1a;     /* 面板背景 */
-            --accent-color: #333333;        /* 边框与占位 */
-            --text-color: #e0e0e0;          /* 主要文字偏白 */
-            --light-text: #7a7a7a;          /* 次要文字 */
-            --highlight: #d4af37;           /* 韦恩暗金色 */
-            --message-self: rgba(212, 175, 55, 0.15); /* 自己的气泡：微微带金 */
-            --message-other: rgba(30, 30, 30, 0.85);  /* 布鲁斯的气泡：深灰黑 */
+            --primary-color: #0d0d0d;       
+            --secondary-color: #1a1a1a;     
+            --accent-color: #333333;        
+            --text-color: #e0e0e0;          
+            --light-text: #7a7a7a;          
+            --highlight: #d4af37;           
+            --message-self: rgba(212, 175, 55, 0.15); 
+            --message-other: rgba(30, 30, 30, 0.85);  
         }
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
@@ -34,8 +34,20 @@
         .info-center { text-align: center; cursor: pointer; min-width: 150px; padding: 5px; }
         .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-color) center/cover; margin: 0 auto 4px; border: 1px solid rgba(212, 175, 55, 0.3); }
         .name { font-size: 15px; letter-spacing: 2px; font-weight: bold; color: var(--highlight); }
-        .days-tag { font-size: 9px; color: var(--primary-color); background: var(--highlight); padding: 1px 6px; border-radius: 10px; margin-top: 2px; display: inline-block; font-weight: bold;}
-        .status { font-size: 10px; color: var(--light-text); margin-top: 2px; font-family: sans-serif; }
+        
+        /* 生日彩蛋：高亮暗金标签 */
+        .days-tag { font-size: 9px; color: var(--primary-color); background: var(--light-text); padding: 1px 6px; border-radius: 10px; margin-top: 2px; display: inline-block; font-weight: bold; transition: background 0.5s;}
+        .days-tag.birthday-active { background: var(--highlight); animation: neonGlow 2s ease-in-out infinite; }
+        
+        /* 生日彩蛋：高亮暗金状态 */
+        .status { font-size: 10px; color: var(--light-text); margin-top: 2px; font-family: sans-serif; transition: color 0.5s;}
+        .status.birthday-active { color: var(--highlight); font-weight: bold;}
+        
+        @keyframes neonGlow { 
+            0%, 100% { box-shadow: 0 0 5px rgba(212, 175, 55, 0.5); } 
+            50% { box-shadow: 0 0 15px rgba(212, 175, 55, 0.8); } 
+        }
+
         .music-toggle { position: absolute; right: 20px; cursor: pointer; padding: 10px; }
         .music-icon { width: 20px; height: 20px; fill: var(--light-text); }
         .music-playing { animation: rotate 3s linear infinite; fill: var(--highlight); }
@@ -45,9 +57,18 @@
         .msg-row { display: flex; align-items: flex-start; gap: 10px; max-width: 88%; }
         .row-self { flex-direction: row-reverse; align-self: flex-end; }
         .mini-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; background: var(--accent-color) center/cover; border: 1px solid rgba(255,255,255,0.1); }
+        
         .bubble { padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.6; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.5); word-wrap: break-word; border: 1px solid rgba(255,255,255,0.05); }
         .self .bubble { background: var(--message-self); border-top-right-radius: 2px; border-color: rgba(212, 175, 55, 0.2); }
         .other .bubble { background: var(--message-other); border-top-left-radius: 2px; }
+        
+        /* 生日彩蛋：特供金边留言气泡 */
+        .bubble.birthday-special { 
+            border: 2px solid var(--highlight) !important; 
+            background: rgba(212, 175, 55, 0.25) !important;
+            animation: neonGlow 2s ease-in-out infinite;
+        }
+
         .img-content { max-width: 140px; border-radius: 10px; display: block; opacity: 0.9; }
 
         footer { height: 70px; background: rgba(13, 13, 13, 0.8); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border-top: 1px solid var(--accent-color); position: fixed; bottom: 0; width: 100%; display: flex; padding: 0 15px; align-items: center; gap: 12px; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
@@ -77,6 +98,8 @@
 </head>
 <body>
     <audio id="bgm-player" loop></audio>
+    <audio id="notify-player"></audio>
+    
     <header>
         <div class="info-center" onclick="editPartnerName()">
             <div id="header-avatar" class="avatar" onclick="event.stopPropagation(); triggerAvatarChange('partner')"></div>
@@ -116,7 +139,7 @@
         </div>
 
         <div id="tab-emojis" class="tab-content">
-            <p style="font-size:12px; color:var(--light-text); margin-bottom:10px;">✨ 上传你们的专属表情库</p>
+            <p style="font-size:12px; color:var(--light-text); margin-bottom:10px;">✨ 上传专属表情图库</p>
             <div style="display:flex; gap:5px; margin-bottom:10px;">
                 <input type="text" id="emoji-url-input" class="setting-input" style="margin:0;" placeholder="贴入图床链接 (.jpg/.png)">
                 <button class="btn-main" style="width:auto; padding:0 15px; margin:0;" onclick="addEmojiUrl()">添加</button>
@@ -127,6 +150,31 @@
         </div>
 
         <div id="tab-settings" class="tab-content">
+            <p style="font-size:12px; color:var(--highlight); margin-bottom:5px;">🎁 埋藏心动的种子 (你的专属生日彩蛋)：</p>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px; background:var(--primary-color); padding:10px; border-radius:8px; border:1px solid var(--accent-color);">
+                <label style="font-size:14px; flex:1; color:var(--text-color);">设置你的生日 (年不必需)：</label>
+                <input type="date" id="birthday-input" class="setting-input" style="width:130px; margin:0; padding:5px; text-align:center;" onchange="updateFriendBirthday(this.value)">
+                <button onclick="testBirthdaySurprise()" class="btn-sub" style="width:auto; margin:0; padding:0 10px; font-size:10px;">测</button>
+            </div>
+
+            <p style="font-size:12px; color:var(--light-text); margin-bottom:5px;">🎁 终端讯息掉落 & 离线留言：</p>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px; background:var(--primary-color); padding:10px; border-radius:8px; border:1px solid var(--accent-color);">
+                <label style="font-size:14px; flex:1; display:flex; align-items:center; gap:5px; cursor:pointer;">
+                    <input type="checkbox" id="random-drop-cb" onchange="updateRandomDrop(this.checked)"> 允许布鲁斯随时留言
+                </label>
+                <div style="font-size:12px; color:var(--light-text); display:flex; align-items:center; gap:5px;">
+                    平均每 <input type="number" id="drop-freq-input" class="setting-input" style="width:50px; margin:0; padding:5px; text-align:center;" onchange="updateDropFreq(this.value)" min="1"> 分钟
+                </div>
+            </div>
+
+            <p style="font-size:12px; color:var(--light-text); margin-bottom:5px;">🔔 消息提示音 (MP3链接)：</p>
+            <div style="display:flex; gap:5px; margin-bottom:15px;">
+                <input type="text" id="notify-url-input" class="setting-input" style="margin:0;" onchange="updateNotifyUrl(this.value)" placeholder="留空则静音...">
+                <button onclick="testNotify()" class="btn-sub" style="width:auto; margin:0; padding:0 15px;">测音</button>
+            </div>
+
+            <hr style="border:0; border-top:1px dashed var(--accent-color); margin-bottom:15px;">
+
             <p style="font-size:12px; color:var(--highlight); margin-bottom:5px;">⏳ 对方思考时间 (秒)：</p>
             <input type="number" id="speed-input" class="setting-input" onchange="updateSpeed(this.value)" placeholder="输入秒数，默认 8 秒" min="1" max="60">
 
@@ -146,7 +194,7 @@
     <input type="file" id="avatar-file" accept="image/*">
 
     <script>
-        // 单一纯粹的数据结构，不再区分多个 Chat
+        // 单人专属结构
         let appState = {
             selfAvatar: '',
             partnerAvatar: '',
@@ -154,28 +202,139 @@
             wallpaper: '',
             bgmList: [],
             startDate: new Date().toISOString().split('T')[0],
+            friendBirthday: '01-01', // 默认占位
+            lastBirthdayYearTriggered: 0, // 确保每年只触发一次
             messages: [],
             words: ["韦恩集团今天有个会", "夜巡结束了", "注意安全", "I'm Batman", "早点休息"],
             emojis: [],
-            replySpeed: 8 // 布鲁斯可能回消息快一点，默认8秒
+            replySpeed: 8,
+            randomDrop: false,
+            dropFreq: 15,
+            notifyUrl: 'https://cdn.pixabay.com/audio/2021/08/04/audio_bb630cc098.mp3', // 默认清脆水滴声
+            lastLeaveTime: Date.now()
         };
 
         let isTyping = false; 
+        let isAppReady = false;
+        let dropTimer = null;
+        let specialMessageContent = "韦恩庄园今天的晚宴，只为你一个人办。生日快乐。";
 
         function init() {
             const saved = localStorage.getItem('wayne_secure_state');
             if (saved) { 
                 try {
                     let parsed = JSON.parse(saved);
-                    // 兼容旧数据或合并
                     appState = { ...appState, ...parsed };
+                    if (!appState.lastLeaveTime) appState.lastLeaveTime = Date.now();
+                    if (appState.friendBirthday === undefined) appState.friendBirthday = '01-01';
+                    if (appState.lastBirthdayYearTriggered === undefined) appState.lastBirthdayYearTriggered = 0;
                 } catch(e) {}
             }
+            
+            // 核心：处理离线期间错过的未读消息
+            processOfflineMessages();
+            
             applyUI(); 
             renderChat();
+            
+            // 核心新增：时光穿梭瞬间，检查是否生日！
+            setTimeout(() => { 
+                checkAndTriggerBirthdaySurprise();
+                isAppReady = true; 
+                startDropTimer(); 
+            }, 1000);
         }
 
-        function save() { try { localStorage.setItem('wayne_secure_state', JSON.stringify(appState)); } catch(e) { alert("终端存储已满，请使用云端链接。"); } }
+        function save() { 
+            appState.lastLeaveTime = Date.now();
+            try { localStorage.setItem('wayne_secure_state', JSON.stringify(appState)); } catch(e) { alert("终端存储已满，请使用云端链接。"); } 
+        }
+
+        // --- 生日彩蛋引擎 ---
+        function checkAndTriggerBirthdaySurprise() {
+            if (!isAppReady || !appState.friendBirthday) return;
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            // 格式化手机今天的日期为 MM-DD
+            const todayMD = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+            if (todayMD === appState.friendBirthday && currentYear != appState.lastBirthdayYearTriggered) {
+                // 见证奇迹的时刻
+                triggerBirthdaySurprise(currentYear);
+            } else {
+                // 平常日子，还原 UI
+                document.getElementById('status-text').innerText = "在线";
+                document.getElementById('memorial-days').classList.remove('birthday-active');
+                document.getElementById('status-text').classList.remove('birthday-active');
+            }
+        }
+
+        function triggerBirthdaySurprise(year) {
+            // 1. 修改顶栏 UI 营造氛围
+            document.getElementById('status-text').innerText = "Your Day. Restricted Access.";
+            document.getElementById('memorial-days').classList.add('birthday-active');
+            document.getElementById('status-text').classList.add('birthday-active');
+
+            // 2. 注入金边留言（模拟布鲁斯连发）
+            setTimeout(() => {
+                const chatWindow = document.getElementById('chat-window');
+                // 标记为特殊消息以便特殊渲染
+                const msg = { text: specialMessageContent, isImg: false, type: 'other', id: Date.now(), isBirthdaySpecial: true };
+                appState.messages.push(msg);
+                renderSingleMsg(msg);
+                
+                // 3. 响两声提示音制造惊喜
+                playNotifySound();
+                setTimeout(() => playNotifySound(), 800);
+                
+                // 4. 锁定今年，不再重复触发
+                appState.lastBirthdayYearTriggered = year;
+                save();
+            }, 1500); 
+        }
+
+        function testBirthdaySurprise() {
+            if(!confirm('确定要在手机上立即预览生日彩蛋效果吗？（这不会影响真正的生日触发，仅供测试 UI）')) return;
+            triggerBirthdaySurprise(0); // 传入 0 表示测试，不记录年份
+        }
+
+        // --- 时光倒流/离线留言引擎 ---
+        function processOfflineMessages() {
+            if (!appState.randomDrop || !appState.lastLeaveTime) return;
+            const now = Date.now();
+            const awayMs = now - appState.lastLeaveTime;
+            const freqMs = (appState.dropFreq || 15) * 60 * 1000;
+
+            if (awayMs > 120000) { // 离开超过两分钟才有可能触发
+                let missedDrops = Math.floor(awayMs / freqMs);
+                if (missedDrops === 0 && Math.random() < 0.4) missedDrops = 1; 
+                missedDrops = Math.min(3, missedDrops); // 最多补偿3条
+
+                if (missedDrops > 0) {
+                    const pool = [...appState.words.map(w=>({t:w,i:false})), ...appState.emojis.map(e=>({t:e,i:true}))];
+                    if(pool.length > 0) {
+                        for(let i=0; i<missedDrops; i++) {
+                            const item = pool[Math.floor(Math.random()*pool.length)];
+                            const fakeTime = appState.lastLeaveTime + Math.floor(Math.random() * awayMs);
+                            appState.messages.push({ text: item.t, isImg: item.i, type: 'other', id: fakeTime });
+                        }
+                        appState.messages.sort((a,b) => a.id - b.id);
+                        setTimeout(() => playNotifySound(), 1500);
+                    }
+                }
+            }
+            appState.lastLeaveTime = now;
+        }
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'hidden') {
+                appState.lastLeaveTime = Date.now(); save();
+            } else {
+                processOfflineMessages(); renderChat(); appState.lastLeaveTime = Date.now();
+                checkAndTriggerBirthdaySurprise(); // 切回来时再检查一次
+                save();
+            }
+        });
 
         function applyUI() {
             document.getElementById('display-name').innerText = appState.partnerName;
@@ -188,6 +347,13 @@
             document.getElementById('date-input').value = appState.startDate;
             document.getElementById('speed-input').value = appState.replySpeed;
             
+            document.getElementById('birthday-input').value = '2020-' + appState.friendBirthday; // 网页端需要年份才能正确显示，默认填个不影响判断的年份
+            
+            document.getElementById('random-drop-cb').checked = appState.randomDrop;
+            document.getElementById('drop-freq-input').value = appState.dropFreq;
+            document.getElementById('notify-url-input').value = appState.notifyUrl || '';
+            document.getElementById('notify-player').src = appState.notifyUrl || '';
+            
             const diff = Math.floor(Math.abs(new Date() - new Date(appState.startDate)) / (1000*60*60*24)) + 1;
             document.getElementById('memorial-days').innerText = `Day ${diff}`;
             
@@ -198,52 +364,66 @@
             document.getElementById('music-svg').classList.remove('music-playing');
             document.getElementById('status-text').innerText = "在线";
             isTyping = false;
+            
+            startDropTimer();
         }
 
-        function updateSpeed(val) {
-            let speed = parseInt(val);
-            if(isNaN(speed) || speed < 0) speed = 8;
-            appState.replySpeed = speed;
-            save();
+        function updateRandomDrop(val) { appState.randomDrop = val; save(); startDropTimer(); }
+        function updateDropFreq(val) { appState.dropFreq = Math.max(1, parseInt(val)||5); save(); }
+        
+        // 生日更新：解析 YYYY-MM-DD 为 MM-DD 存储
+        function updateFriendBirthday(val) {
+            if(!val) return;
+            const parts = val.split('-');
+            appState.friendBirthday = `${parts[1]}-${parts[2]}`;
+            appState.lastBirthdayYearTriggered = 0; // 重置触发锁，测试用
+            save(); 
+            checkAndTriggerBirthdaySurprise(); // 设完当场检查一下
+        }
+        
+        function updateNotifyUrl(val) { appState.notifyUrl = val; document.getElementById('notify-player').src = val; save(); }
+        function testNotify() { document.getElementById('notify-player').play().catch(()=>{alert('系统限制，请先点击一下屏幕任意位置哦~')}); }
+
+        function playNotifySound() {
+            if (!isAppReady || !appState.notifyUrl || document.visibilityState === 'hidden') return;
+            const p = document.getElementById('notify-player');
+            p.currentTime = 0; p.play().catch(()=>{});
         }
 
-        function updateBgmList() {
-            const lines = document.getElementById('bgm-list-input').value.split('\n');
-            appState.bgmList = lines.map(l => l.trim()).filter(l => l);
-            save();
+        function startDropTimer() {
+            if (dropTimer) clearInterval(dropTimer);
+            dropTimer = setInterval(() => {
+                if (!appState.randomDrop || isTyping || document.visibilityState === 'hidden') return;
+                if (Math.random() < (1 / appState.dropFreq)) { autoReply(true); }
+            }, 60000); 
         }
 
+        function updateSpeed(val) { let speed = parseInt(val); if(isNaN(speed) || speed < 0) speed = 8; appState.replySpeed = speed; save(); }
+        function updateBgmList() { const lines = document.getElementById('bgm-list-input').value.split('\n'); appState.bgmList = lines.map(l => l.trim()).filter(l => l); save(); }
         function toggleMusic() { 
             const p = document.getElementById('bgm-player'); const s = document.getElementById('music-svg');
             if (p.paused) { 
                 if (appState.bgmList && appState.bgmList.length > 0) { 
-                    const randomSong = appState.bgmList[Math.floor(Math.random() * appState.bgmList.length)];
-                    p.src = randomSong;
+                    p.src = appState.bgmList[Math.floor(Math.random() * appState.bgmList.length)];
                     p.play().then(() => s.classList.add('music-playing')).catch(() => { alert("系统限制，请先点击屏幕任意处") }); 
                 } else { alert("请在设置中录入音轨链接。"); toggleDrawer(); }
             } else { p.pause(); s.classList.remove('music-playing'); }
         }
 
         function batchAddWords() {
-            const lines = document.getElementById('batch-word-input').value.split('\n');
-            let count = 0;
+            const lines = document.getElementById('batch-word-input').value.split('\n'); let count = 0;
             lines.forEach(line => { if (line.trim()) { appState.words.push(line.trim()); count++; } });
             if (count > 0) { document.getElementById('batch-word-input').value = ''; save(); renderWordList(); alert(`成功录入 ${count} 条数据。`); }
         }
         function renderWordList() { document.getElementById('word-list').innerHTML = appState.words.map((w, i) => `<div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid var(--accent-color); font-size:13px; color:var(--text-color);"><span>${w}</span><span style="color:#a84c4c; cursor:pointer" onclick="appState.words.splice(${i},1);save();renderWordList()">删除</span></div>`).join(''); }
         function clearWords() { if (confirm(`确认清空数据吗？`)) { appState.words = []; save(); renderWordList(); } }
 
-        function addEmojiUrl() {
-            const url = document.getElementById('emoji-url-input').value.trim();
-            if(url) { appState.emojis.push(url); document.getElementById('emoji-url-input').value = ''; save(); renderEmojiList(); }
-        }
+        function addEmojiUrl() { const url = document.getElementById('emoji-url-input').value.trim(); if(url) { appState.emojis.push(url); document.getElementById('emoji-url-input').value = ''; save(); renderEmojiList(); } }
 
         document.getElementById('emoji-file').onchange = async function(e) {
             const files = e.target.files; if (files.length === 0) return;
             document.getElementById('emoji-list').innerHTML = "<p style='font-size:12px;color:var(--highlight);'>加密处理中...</p>";
-            for (let i = 0; i < files.length; i++) {
-                try { const base64 = await compressImage(files[i]); appState.emojis.push(base64); } catch (err) {}
-            }
+            for (let i = 0; i < files.length; i++) { try { const base64 = await compressImage(files[i]); appState.emojis.push(base64); } catch (err) {} }
             save(); renderEmojiList();
         };
 
@@ -262,15 +442,13 @@
             });
         }
 
-        function renderEmojiList() {
-            document.getElementById('emoji-list').innerHTML = appState.emojis.map((img, i) => `<div class="emoji-box" style="background-image:url(${img})" onclick="sendMsg('${img}',true)"><div class="del-badge" onclick="event.stopPropagation(); appState.emojis.splice(${i},1);save();renderEmojiList()">×</div></div>`).join('');
-        }
+        function renderEmojiList() { document.getElementById('emoji-list').innerHTML = appState.emojis.map((img, i) => `<div class="emoji-box" style="background-image:url(${img})" onclick="sendMsg('${img}',true)"><div class="del-badge" onclick="event.stopPropagation(); appState.emojis.splice(${i},1);save();renderEmojiList()">×</div></div>`).join(''); }
         function clearEmojis() { if (confirm(`确认清空图库吗？`)) { appState.emojis = []; save(); renderEmojiList(); } }
 
         function sendMsg(text, isImg=false, type='self') {
             const msg = { text, isImg, type, id: Date.now() };
             appState.messages.push(msg); renderSingleMsg(msg); save();
-            if(type === 'self') autoReply();
+            if(type === 'self') autoReply(false); 
         }
 
         function renderSingleMsg(m) {
@@ -279,11 +457,16 @@
             const avatarImg = m.type === 'self' ? appState.selfAvatar : appState.partnerAvatar;
             const av = `<div class="mini-avatar" style="background-image:url(${avatarImg})"></div>`;
             const content = m.isImg ? `<img src="${m.text}" class="img-content" onload="scrollToBottom()">` : `<span>${m.text}</span>`;
-            row.innerHTML = m.type==='self' ? `<div class="bubble">${content}</div>${av}` : `${av}<div class="bubble">${content}</div>`;
+            
+            // 生日彩蛋：给气泡应用特殊样式
+            const bubbleClass = m.isBirthdaySpecial ? 'bubble birthday-special' : 'bubble';
+            row.innerHTML = m.type==='self' ? `<div class="${bubbleClass}">${content}</div>${av}` : `${av}<div class="${bubbleClass}">${content}</div>`;
             win.appendChild(row); scrollToBottom();
+            
+            if (m.type === 'other') { playNotifySound(); }
         }
 
-        function autoReply() {
+        function autoReply(isUnprompted = false) {
             if (isTyping) return; 
             const pool = [...appState.words.map(w=>({t:w,i:false})), ...appState.emojis.map(e=>({t:e,i:true}))];
             if(!pool.length) return;
@@ -291,7 +474,7 @@
             isTyping = true;
             document.getElementById('status-text').innerText = "输入中...";
             
-            const speedMs = (appState.replySpeed || 8) * 1000;
+            const speedMs = isUnprompted ? 2000 : (appState.replySpeed || 8) * 1000;
             
             setTimeout(() => {
                 const replyCount = Math.floor(Math.random() * 5) + 1;
@@ -299,7 +482,7 @@
 
                 function sendNext() {
                     if (sentCount >= replyCount) {
-                        document.getElementById('status-text').innerText = "在线";
+                        checkAndTriggerBirthdaySurprise(); // 检查是否还是生日状态
                         isTyping = false;
                         return;
                     }
@@ -313,7 +496,7 @@
                         document.getElementById('status-text').innerText = "输入中...";
                         setTimeout(sendNext, Math.floor(Math.random() * 1500) + 1500);
                     } else {
-                        document.getElementById('status-text').innerText = "在线";
+                        checkAndTriggerBirthdaySurprise();
                         isTyping = false;
                     }
                 }
@@ -324,11 +507,7 @@
         }
 
         function renderChat() { document.getElementById('chat-window').innerHTML = ''; appState.messages.forEach(renderSingleMsg); }
-        
-        function scrollToBottom() { 
-            const c = document.getElementById('chat-window'); 
-            setTimeout(() => { c.scrollTo({ top: c.scrollHeight + 200, behavior: 'smooth' }); }, 50); 
-        }
+        function scrollToBottom() { const c = document.getElementById('chat-window'); setTimeout(() => { c.scrollTo({ top: c.scrollHeight + 200, behavior: 'smooth' }); }, 50); }
 
         function editPartnerName() { const n = prompt("重命名终端代号：", appState.partnerName); if(n && n.trim()) { appState.partnerName = n.trim(); applyUI(); save(); } }
         function updateDate(d) { appState.startDate = d; save(); applyUI(); }
